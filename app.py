@@ -39,7 +39,7 @@ COULEUR_GRAVITE = {"Tué": "#7B1E1E", "Blessé hospitalisé": "#E4572E", "Bless�
 COULEUR_ANNEE = {2022: "#9DB4C0", 2023: "#5B8DB8", 2024: "#1F4E79"}
 BLEU = "#1F4E79"
 SEUIL_POPULATION = 5000            # classement par habitant : communes de plus de 5 000 habitants (évite les petits nombres)
-IDS_GRAPHES = ["courbe", "heatmap", "gravite", "communes", "nuage", "table"]
+IDS_GRAPHES = ["courbe", "heatmap", "gravite", "nuage", "communes", "table"]
 
 
 def fr(x, n=0):
@@ -68,13 +68,13 @@ donnees(tuple(ANNEES), tuple(DEPARTEMENTS), True, "Tous")
 
 
 # ----------------------------------------------------------------------------
-# Graphiques (le titre et le sous-titre sont affichés en HTML au-dessus du graphique : ils ne peuvent plus être coupés)
+# Graphiques (le titre et le sous-titre sont affichés en HTML au-dessus du graphique : ils ne peuvent pas être coupés)
 # ----------------------------------------------------------------------------
 JOURS_LONG = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
 COULEUR_TITRE = "#111827"
 COULEUR_SOUS_TITRE = "#374151"
-TAILLE_TEXTE = 14
-TAILLE_AXES = 13
+TAILLE_TEXTE = 13
+TAILLE_AXES = 12
 
 
 def style(fig, titre, legende=False, sous_titre=None):
@@ -82,28 +82,28 @@ def style(fig, titre, legende=False, sous_titre=None):
     fig.update_layout(template="plotly_white", autosize=True, height=None, showlegend=legende,
                       font=dict(size=TAILLE_TEXTE), hoverlabel=dict(font_size=TAILLE_TEXTE),
                       title=dict(text=""), meta=dict(titre=titre, sous=sous_titre or ""),
-                      margin=dict(t=54 if legende else 20, l=70, r=28, b=56),
+                      margin=dict(t=40 if legende else 12, l=10, r=16, b=10),
                       legend=dict(orientation="h", x=0, y=1.0, yanchor="bottom", font=dict(size=TAILLE_TEXTE)))
-    fig.update_xaxes(tickfont=dict(size=TAILLE_AXES), title_font=dict(size=TAILLE_TEXTE))
-    fig.update_yaxes(tickfont=dict(size=TAILLE_AXES), title_font=dict(size=TAILLE_TEXTE))
+    fig.update_xaxes(tickfont=dict(size=TAILLE_AXES), title_font=dict(size=TAILLE_TEXTE), automargin=True)
+    fig.update_yaxes(tickfont=dict(size=TAILLE_AXES), title_font=dict(size=TAILLE_TEXTE), automargin=True)
     return fig
 
 
 def entete(fig):
-    """Titre-message (gras, 22 px) + contexte (15 px) à placer au-dessus du graphique."""
+    """Titre-message (gras, 18 px) + contexte (13 px) à placer au-dessus du graphique."""
     meta = fig.layout.meta or {}
     titre, sous = meta.get("titre", ""), meta.get("sous", "")
     if not titre:
         return []
-    enfants = [html.Div(titre, style={"fontSize": "22px", "fontWeight": "bold", "color": COULEUR_TITRE, "lineHeight": "1.25"})]
+    enfants = [html.Div(titre, style={"fontSize": "18px", "fontWeight": "bold", "color": COULEUR_TITRE, "lineHeight": "1.2"})]
     if sous:
-        enfants.append(html.Div(sous, style={"fontSize": "15px", "color": COULEUR_SOUS_TITRE, "marginTop": "4px"}))
+        enfants.append(html.Div(sous, style={"fontSize": "13px", "color": COULEUR_SOUS_TITRE, "marginTop": "3px", "lineHeight": "1.25"}))
     return enfants
 
 
 def fig_vide(message):
     fig = go.Figure()
-    fig.add_annotation(text=message, showarrow=False, font=dict(size=16, color="#777"))
+    fig.add_annotation(text=message, showarrow=False, font=dict(size=15, color="#777"))
     fig.update_xaxes(visible=False)
     fig.update_yaxes(visible=False)
     return style(fig, "")
@@ -125,14 +125,14 @@ def fig_courbe(mois_df, annees):                                 # courbe : évo
         y = mois_df.groupby("mois")["accidents"].sum()
         titre = f"Mois le plus chargé : {MOIS[int(y.idxmax()) - 1]} ({fr(y.max())} accidents)" if len(y) else "Accidents par mois"
     style(fig, titre, legende=True, sous_titre="Accidents par mois, une courbe par année")
-    fig.update_layout(yaxis=dict(title="Accidents", rangemode="tozero"))
+    fig.update_layout(yaxis=dict(rangemode="tozero"))
     return fig
 
 
 def fig_heatmap(jh_df):                                          # heatmap : jour × heure
     m = jh_df.pivot_table(index="jour_semaine", columns="heure", values="accidents", aggfunc="sum").reindex(index=range(7), columns=range(24)).fillna(0)
     jour, heure = np.unravel_index(np.argmax(m.values), m.shape)
-    fig = go.Figure(go.Heatmap(z=m.values, x=list(range(24)), y=JOURS, colorscale="YlOrRd", colorbar=dict(thickness=16, tickfont=dict(size=TAILLE_AXES), title=dict(text="Acc.", side="top")),
+    fig = go.Figure(go.Heatmap(z=m.values, x=list(range(24)), y=JOURS, colorscale="YlOrRd", colorbar=dict(thickness=12, tickfont=dict(size=TAILLE_AXES)),
                                hovertemplate="%{y} %{x}h : %{z} accidents<extra></extra>"))
     style(fig, f"Pic : le {JOURS_LONG[jour]} à {heure} h", sous_titre=f"{fr(m.values[jour, heure])} accidents · jour de la semaine × heure")
     fig.update_yaxes(autorange="reversed")
@@ -158,7 +158,7 @@ def fig_gravite(g_df):                                           # barres empil�
                              hovertemplate="%{y} – " + g + " : %{x:.1f} %<extra></extra>"))
     pire = touches.idxmax()
     style(fig, f"{pire} : {fr(touches.max())} % tués ou hospitalisés", legende=True, sous_titre="Gravité des usagers selon leur type (en %)")
-    fig.update_layout(barmode="stack", xaxis=dict(ticksuffix=" %", range=[0, 100]), margin=dict(l=180))
+    fig.update_layout(barmode="stack", xaxis=dict(ticksuffix=" %", range=[0, 100]))
     return fig
 
 
@@ -176,14 +176,14 @@ def fig_communes(c_df):                                          # barres horizo
     if c.empty:
         return fig_vide("Aucune commune pour ce filtre")
     c = c.iloc[::-1]                                             # la plus touchée en haut
-    c["commune"] = c["commune"].map(lambda n: n if len(n) <= 26 else n[:25] + "…")
+    c["commune"] = c["commune"].map(lambda n: n if len(n) <= 22 else n[:21] + "…")
     fig = go.Figure(go.Bar(y=c["commune"], x=c["valeur"], orientation="h", marker_color=BLEU,
                            text=[fr(v, 1 if par_habitant else 0) for v in c["valeur"]], textposition="outside", textfont=dict(size=TAILLE_AXES), cliponaxis=False,
                            customdata=c[["accidents", "accidents_graves"]].values,
                            hovertemplate="%{y} : %{customdata[0]} accidents dont %{customdata[1]} graves<extra></extra>"))
     top = c.iloc[-1]
     style(fig, f"{top['commune']} : {fr(top['valeur'], 1 if par_habitant else 0)} {unite}", sous_titre=sous)
-    fig.update_layout(margin=dict(l=200, r=60), xaxis=dict(visible=False))
+    fig.update_layout(margin=dict(r=50), xaxis=dict(visible=False))
     return fig
 
 
@@ -200,11 +200,11 @@ def fig_nuage(c_df):                                             # nuage de poin
     else:
         titre = f"{fr(moyenne)} % des accidents sont graves en moyenne"
     fig = go.Figure(go.Scatter(x=c["accidents"], y=c["pct"], mode="markers", text=c["commune"],
-                               marker=dict(size=10, color=BLEU, opacity=0.6, line=dict(width=0.5, color="white")),
+                               marker=dict(size=9, color=BLEU, opacity=0.6, line=dict(width=0.5, color="white")),
                                hovertemplate="<b>%{text}</b><br>%{x} accidents<br>%{y:.1f} % graves<extra></extra>"))
     fig.add_hline(y=moyenne, line_dash="dot", line_color="#999")
     style(fig, titre, sous_titre=f"Moyenne régionale : {fr(moyenne)} % · communes de 10 accidents ou plus")
-    fig.update_layout(xaxis=dict(title="Accidents (échelle log)", type="log", tickvals=[10, 30, 100, 300, 1000], ticktext=["10", "30", "100", "300", "1 000"]), yaxis=dict(title="Accidents graves (%)", ticksuffix=" %", rangemode="tozero"))
+    fig.update_layout(xaxis=dict(title="Accidents (échelle log)", type="log", tickvals=[10, 30, 100, 300, 1000], ticktext=["10", "30", "100", "300", "1 000"]), yaxis=dict(title="Graves (%)", ticksuffix=" %", rangemode="tozero"))
     return fig
 
 
@@ -217,11 +217,11 @@ def fig_table(p_df):                                             # tableau : lie
     fig = go.Figure(go.Table(
         columnwidth=[3, 2.2, 1.2, 1.2, 1.1],
         header=dict(values=["<b>Lieu</b>", "<b>Commune</b>", "<b>Accid.</b>", "<b>Graves</b>", "<b>Tués</b>"],
-                    fill_color=BLEU, font=dict(color="white", size=TAILLE_TEXTE), align="left", height=32),
+                    fill_color=BLEU, font=dict(color="white", size=TAILLE_TEXTE), align="left", height=28),
         cells=dict(values=[lieu, commune, t["accidents"], t["graves"], t["tues"]],
-                   fill_color="#F5F6F8", align="left", font=dict(size=TAILLE_TEXTE), height=30)))
+                   fill_color="#F5F6F8", align="left", font=dict(size=TAILLE_TEXTE), height=25)))
     style(fig, f"8 lieux : {fr(t['graves'].sum())} accidents graves", sous_titre="Lieux regroupés à ~100 m, classés par gravité")
-    fig.update_layout(margin=dict(l=10, r=10, t=10, b=10))
+    fig.update_layout(margin=dict(l=4, r=4, t=4, b=4))
     return fig
 
 
@@ -265,16 +265,16 @@ def carte_html(p_df):
 
 
 # ----------------------------------------------------------------------------
-# Mise en page : la page défile normalement du haut vers le bas
+# Mise en page : UNE SEULE PAGE, sans onglets, qui remplit la hauteur de l'écran
 # ----------------------------------------------------------------------------
 def cartes_kpi(k):
     taux = k["tues"] / k["accidents"] * 100 if k["accidents"] else 0
     cartes = [("Accidents corporels", fr(k["accidents"]), "#1F4E79"), ("Tués", fr(k["tues"]), "#7B1E1E"),
               ("Blessés hospitalisés", fr(k["hospitalises"]), "#E4572E"), ("Tués pour 100 accidents", fr(taux, 1), "#555")]
     return [html.Div(style={"flex": "1 1 0", "background": "white", "border": "1px solid #E0E0E0", "borderRadius": "8px",
-                            "padding": "10px 16px", "borderLeft": f"6px solid {couleur}"},
-                     children=[html.Div(titre, style={"fontSize": "15px", "color": "#4B5563"}),
-                               html.Div(valeur, style={"fontSize": "32px", "fontWeight": "bold", "color": couleur})])
+                            "padding": "5px 14px", "borderLeft": f"6px solid {couleur}"},
+                     children=[html.Div(titre, style={"fontSize": "13px", "color": "#4B5563"}),
+                               html.Div(valeur, style={"fontSize": "26px", "fontWeight": "bold", "color": couleur})])
             for titre, valeur, couleur in cartes]
 
 
@@ -288,7 +288,7 @@ app.index_string = """<!DOCTYPE html>
 <title>{%title%}</title>
 {%favicon%}
 {%css%}
-<style>html, body {margin: 0; min-height: 100%; overflow-y: auto;}</style>
+<style>html, body {margin: 0; height: 100%; overflow: hidden;}</style>
 </head>
 <body>
 {%app_entry%}
@@ -303,28 +303,18 @@ app.index_string = """<!DOCTYPE html>
 PANNEAU = {"position": "relative", "backgroundColor": "white", "border": "1px solid #E0E0E0", "borderRadius": "8px",
            "minHeight": 0, "minWidth": 0, "overflow": "hidden"}
 PANNEAU_GRAPHE = {**PANNEAU, "display": "flex", "flexDirection": "column"}
-REMPLIR = {"position": "absolute", "top": "6px", "left": "6px", "right": "6px", "bottom": "6px"}      # marge intérieure
+REMPLIR = {"position": "absolute", "top": "4px", "left": "6px", "right": "6px", "bottom": "4px"}
 CONFIG = {"displayModeBar": False, "responsive": True}
-ETIQUETTE = {"fontWeight": "bold", "fontSize": "13px", "color": "#374151", "display": "block", "marginBottom": "3px"}
-HAUTEUR = "580px"                                                # hauteur fixe d'un panneau : les textes gardent leur taille
-ONGLET = {"padding": "12px 20px", "fontWeight": "bold", "fontSize": "15px", "color": "#374151", "backgroundColor": "#E5E7EB"}
-ONGLET_ACTIF = {**ONGLET, "color": BLEU, "backgroundColor": "white", "borderTop": f"3px solid {BLEU}"}
+ETIQUETTE = {"fontWeight": "bold", "fontSize": "12px", "color": "#374151", "display": "block", "marginBottom": "2px"}
 
 
-def graphique(nom, hauteur=HAUTEUR):
+def graphique(nom):
     """Un panneau = titre HTML (rempli par le callback) + graphique en dessous."""
-    return html.Div(style={**PANNEAU_GRAPHE, "height": hauteur}, children=[
-        html.Div(id=f"t-{nom}", style={"flex": "0 0 auto", "padding": "14px 18px 0 18px"}),
+    return html.Div(style=PANNEAU_GRAPHE, children=[
+        html.Div(id=f"t-{nom}", style={"flex": "0 0 auto", "padding": "10px 14px 0 14px"}),
         html.Div(style={"position": "relative", "flex": "1 1 auto", "minHeight": 0},
                  children=dcc.Graph(id=f"g-{nom}", style=REMPLIR, config=CONFIG)),
     ])
-
-
-def grille(colonnes, enfants, lignes=None):
-    style_grille = {"display": "grid", "gap": "16px", "gridTemplateColumns": colonnes}
-    if lignes:
-        style_grille["gridTemplateRows"] = lignes
-    return html.Div(style=style_grille, children=enfants)
 
 
 def filtre(titre, largeur, composant):
@@ -332,21 +322,21 @@ def filtre(titre, largeur, composant):
 
 
 app.layout = html.Div(
-    style={"minHeight": "100vh", "boxSizing": "border-box", "display": "flex", "flexDirection": "column", "gap": "12px",
-           "padding": "12px 18px 30px 18px", "fontFamily": "Arial, sans-serif", "backgroundColor": "#F5F6F8"},
+    style={"height": "100vh", "boxSizing": "border-box", "display": "flex", "flexDirection": "column", "gap": "8px",
+           "padding": "8px 14px", "fontFamily": "Arial, sans-serif", "backgroundColor": "#F5F6F8", "overflowY": "auto"},
     children=[
         # Bandeau : titre + filtres (un seul jeu de filtres pour tous les visuels)
         html.Div(
-            style={"display": "flex", "alignItems": "flex-end", "justifyContent": "space-between", "gap": "16px",
+            style={"display": "flex", "alignItems": "flex-end", "justifyContent": "space-between", "gap": "12px",
                    "flexWrap": "wrap", "flex": "0 0 auto", "position": "relative", "zIndex": 10},
             children=[
                 html.Div([
                     html.H1("Accidents de la route en Île-de-France : où, quand et chez qui agir ?",
-                            style={"margin": 0, "fontSize": "26px", "color": BLEU}),
+                            style={"margin": 0, "fontSize": "22px", "color": BLEU}),
                     html.Div("Accidents corporels 2022-2024 · Source : ONISR / Ministère de l'Intérieur (data.gouv.fr)",
-                             style={"fontSize": "14px", "color": "#4B5563", "marginTop": "4px"}),
+                             style={"fontSize": "13px", "color": "#4B5563", "marginTop": "2px"}),
                 ]),
-                html.Div(style={"display": "flex", "gap": "12px", "alignItems": "flex-end", "flexWrap": "wrap"}, children=[
+                html.Div(style={"display": "flex", "gap": "10px", "alignItems": "flex-end", "flexWrap": "wrap"}, children=[
                     filtre("Année(s)", "150px", dcc.Dropdown(id="filtre-annee", options=[{"label": str(a), "value": a} for a in ANNEES],
                                                              value=ANNEES, multi=True, clearable=False)),
                     filtre("Département(s)", "240px", dcc.Dropdown(id="filtre-dep", options=[{"label": NOMS_DEP[d], "value": d} for d in DEPARTEMENTS],
@@ -362,23 +352,17 @@ app.layout = html.Div(
             ]),
 
         # Chiffres clés
-        html.Div(id="kpi", style={"display": "flex", "gap": "12px", "flex": "0 0 auto"}),
+        html.Div(id="kpi", style={"display": "flex", "gap": "10px", "flex": "0 0 auto"}),
 
-        # Trois onglets : chacun montre peu de visuels, en grand
-        dcc.Tabs(
-            id="onglets", value="quand", style={"height": "50px", "flex": "0 0 auto"}, content_style={"paddingTop": "14px"},
-            colors={"primary": BLEU, "background": "#E5E7EB", "border": "#D1D5DB"},
+        # Grille 4 colonnes x 2 lignes : quand (2) · qui (2) · où (2 graphiques + carte sur 2 colonnes)
+        html.Div(
+            style={"display": "grid", "gap": "10px", "flex": "1 0 auto", "minHeight": "640px",
+                   "gridTemplateColumns": "repeat(4, minmax(0, 1fr))", "gridTemplateRows": "repeat(2, minmax(310px, 1fr))"},
             children=[
-                dcc.Tab(label="Quand ?  Évolution et créneaux", value="quand", style=ONGLET, selected_style=ONGLET_ACTIF,
-                        children=grille("minmax(0, 1fr) minmax(0, 1fr)", [graphique("courbe"), graphique("heatmap")])),
-                dcc.Tab(label="Qui ?  Usagers et gravité", value="qui", style=ONGLET, selected_style=ONGLET_ACTIF,
-                        children=grille("minmax(0, 1fr) minmax(0, 1fr)", [graphique("gravite"), graphique("nuage")])),
-                dcc.Tab(label="Où ?  Communes et points noirs", value="ou", style=ONGLET, selected_style=ONGLET_ACTIF,
-                        children=grille("minmax(0, 1.25fr) minmax(0, 1fr)", [
-                            html.Div(style={**PANNEAU, "gridRow": "1 / span 2"}, children=html.Iframe(
-                                id="carte", srcDoc="", style={**REMPLIR, "width": "calc(100% - 12px)", "height": "calc(100% - 12px)", "border": "none"})),
-                            graphique("communes", hauteur="470px"), graphique("table", hauteur="470px")],
-                            lignes="470px 470px")),
+                graphique("courbe"), graphique("heatmap"), graphique("gravite"), graphique("nuage"),
+                graphique("communes"), graphique("table"),
+                html.Div(style={**PANNEAU, "gridColumn": "span 2"}, children=html.Iframe(
+                    id="carte", srcDoc="", style={**REMPLIR, "width": "calc(100% - 12px)", "height": "calc(100% - 8px)", "border": "none"})),
             ]),
     ])
 
